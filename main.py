@@ -1,8 +1,28 @@
 import pygame
 import random
+import os
+
+PATH = os.getcwd()
+
 
 # เริ่มต้น โปรเจค
 pygame.init()
+pygame.mixer.init()
+
+######### Sound Effect ###########
+
+# background music
+pygame.mixer.music.load(os.path.join(PATH, 'background-music.mp3'))
+pygame.mixer.music.play(-1) # -1 คือ loop
+
+# collide sound
+explosion = pygame.mixer.Sound(os.path.join(PATH, 'explosion.wav'))
+laser = pygame.mixer.Sound(os.path.join(PATH, 'laser.wav'))
+powerup = pygame.mixer.Sound(os.path.join(PATH, 'powerup.wav'))
+bom = pygame.mixer.Sound(os.path.join(PATH, 'bom.wav'))
+gameover = pygame.mixer.Sound(os.path.join(PATH, 'gameover.wav'))
+sound_state = True
+
 
  # เฟรมเรท
 fps = 30
@@ -22,7 +42,10 @@ SCORE = 0
 #ชีวิต
 
 LIVES = 3
-
+LIVES_TIME =pygame.time.get_ticks()
+GAMEOVER = False
+GAMEOVER_FONT = True
+GAMEOVER_TIME = pygame.time.get_ticks()
 
 # สร้าง สกรีน หรือกล่องใส่เกมส์  
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -32,7 +55,8 @@ pygame.display.set_caption('My First Game By Woravit')
 
 # สร้างแบคกราวด์
 
-bg = '/Users/woravittosomrit/Desktop/python2D/firstgame/bg1.png'
+bg = os.path.join(PATH,'bg1.png')
+
 background = pygame.image.load(bg).convert_alpha() 
 background_rect = background.get_rect()
 
@@ -47,13 +71,11 @@ class Enemy(pygame.sprite.Sprite):
 		#ฟังชั่นหลัก จะรันทุกครั้งที่มีการเรียกใช้
 		pygame.sprite.Sprite.__init__(self)   
 		
-		img = '/Users/woravittosomrit/Desktop/python2D/firstgame/aircraft.png'
+		img = os.path.join(PATH,'aircraft.png')
+
+		# ถ้ามี โฟลเดอร์ image อีกชั้นต้องเขียนแบบนี้
+		# img = os.path.join(PATH,'image').join(PATH,'aircraft.png')
 		self.image = pygame.image.load(img).convert_alpha()
-
-		
-		# code ข้างล่างนี้ก็ทำงานได้
-		#self.ship = pygame.image.load("/Users/woravittosomrit/Desktop/python2D/firstgame/aircraft.png").convert_alpha()
-
 
 		# self.image = pygame.Surface((50,50))
 		# self.image.fill(GREEN)
@@ -63,7 +85,7 @@ class Enemy(pygame.sprite.Sprite):
 
 		# สุมตำแหน่ง แนวแกน x
 		rand_x = random.randint(self.rect.width, WIDTH - self.rect.width)
-
+		#rand_y = random.randint(self.rect.height, HEIGHT - self.rect.height)
 		# ตำแหน่งจากจุดศูนย์กลางตัวละคร
 		self.rect.center = (rand_x, 0)
 
@@ -71,7 +93,7 @@ class Enemy(pygame.sprite.Sprite):
 
 		self.speed_y = random.randint(1, 5)
 
-		# อัพเดท
+# 		# อัพเดท
 	def update(self):
 		self.rect.y += self.speed_y
 		if self.rect.bottom > HEIGHT:
@@ -88,7 +110,7 @@ class Player(pygame.sprite.Sprite):
 		#ฟังชั่นหลัก จะรันทุกครั้ง
 		pygame.sprite.Sprite.__init__(self)   
 		
-		img = '/Users/woravittosomrit/Desktop/python2D/firstgame/bomber.png'
+		img = os.path.join(PATH,'bomber.png')
 		self.image = pygame.image.load(img).convert_alpha()
 
 		
@@ -107,7 +129,6 @@ class Player(pygame.sprite.Sprite):
 
 		self.speed_x = 0
 
-
 		# อัพเดท
 	def update(self):
 		#self.rect.y += 5
@@ -115,21 +136,24 @@ class Player(pygame.sprite.Sprite):
 
 		# เช็คว่ามีการกดปุ่มหรือไม่ ปุ่มอะไร
 		keystate = pygame.key.get_pressed()
-		if keystate[pygame.K_LEFT]:
-			self.speed_x = -5
-		if keystate[pygame.K_RIGHT]:
-			self.speed_x = 5
+		if  GAMEOVER != True:
+			if keystate[pygame.K_LEFT] and self.rect.x > 0:
+				self.speed_x = -5
+			if keystate[pygame.K_RIGHT] and self.rect.x < WIDTH - self.rect.width:
+				self.speed_x = 5
 
 		self.rect.x += self.speed_x
 
 		if self.rect.bottom > HEIGHT:
 			self.rect.y = 0
-   
-	def shoot(self):
-		bullet = Bullet(self.rect.centerx, self.rect.top)
-		all_sprites.add(bullet)
-		group_bullet.add(bullet)
+			
 
+	def shoot(self):
+		if  GAMEOVER != True:
+			pygame.mixer.Sound.play(laser)
+			bullet = Bullet(self.rect.centerx, self.rect.top)
+			all_sprites.add(bullet)
+			group_bullet.add(bullet)
 
 class Bullet(pygame.sprite.Sprite):
 
@@ -151,7 +175,7 @@ class Bullet(pygame.sprite.Sprite):
 		self.rect.centerx = x
 		self.rect.bottom = y
 
-		#speed แนวของกระสุนที่ยิงออกไป
+		#speed x แนวของกระสุนที่ยิงออกไป
 
 		self.speed_y = -10
 
@@ -162,6 +186,44 @@ class Bullet(pygame.sprite.Sprite):
 
 		if self.rect.y < 0:
 			self.kill()
+# กระเป๋าพยาบาล
+
+class Medicpack(pygame.sprite.Sprite):
+
+	def __init__(self):
+		pygame.sprite.Sprite.__init__(self)   
+		img = os.path.join(PATH,'medical.png')
+		# main clock
+		self.last = pygame.time.get_ticks()
+		self.wait = 20000 # milisecon / 20 second
+		self.run = False
+
+		self.image = pygame.image.load(img).convert_alpha()
+		self.rect = self.image.get_rect()	
+		rand_x = random.randint(self.rect.width, WIDTH - self.rect.width)
+		self.rect.center = (rand_x, -100)
+		self.speed_y = random.randint(1, 10)
+
+
+	def update(self):
+		now = pygame.time.get_ticks()
+
+		if self.run == True:
+			self.rect.y += self.speed_y
+		
+		if self.rect.bottom > HEIGHT:
+			# เมื่อกระเป๋าพยาบาลลงมาถึงขอบจอ
+			self.run = False
+			self.rect.y = -100
+			
+		if (now - self.last) >= self.wait:
+			self.run = True
+			self.last = now 
+			rand_x = random.randint(self.rect.width, WIDTH - self.rect.width)
+			self.rect.x = rand_x
+			self.speed_y = random.randint(1, 10)
+
+
 
 font_name = pygame.font.match_font('tahoma')
 
@@ -179,7 +241,7 @@ def draw_text(screen,text,size,x,y):
 all_sprites = pygame.sprite.Group() # กล่องเก็บตัวละคร
 group_enemy = pygame.sprite.Group() # กล่องเก็บศัตรู
 group_bullet = pygame.sprite.Group() # กล่องเก็บกระสุน
-
+group_medicpack = pygame.sprite.Group()
 
 #player
 player = Player()# สร้างตัวละคร
@@ -190,6 +252,11 @@ for i in range(5): # เพิ่มจำนวนตัวละคร
 	enemy = Enemy()
 	all_sprites.add(enemy)
 	group_enemy.add(enemy)
+
+# medicpack
+medicpack = Medicpack()
+all_sprites.add(medicpack)
+group_medicpack.add(medicpack)
 
 
 # สร้างสถานะของเกมส์ 
@@ -213,20 +280,46 @@ while running:
 
 	# ตรวจการชนกันของ sprite ด้วยฟังชั่น collide
 
-	collide = pygame.sprite.spritecollide(player, group_enemy, False)
+	collide = pygame.sprite.spritecollide(player, group_enemy, True)
 	print (collide)
 	# if collide:
 	# 	LIVES -= 1
 
 
 	if collide:
-		#หากมีการชนกัน จะปิดโปรแกรมทันที
-		running = False
+		pygame.mixer.Sound.play(explosion)
+		enemy = Enemy()
+		all_sprites.add(enemy)
+		group_enemy.add(enemy)
+
+		now_lives = pygame.time.get_ticks()
+		if now_lives - LIVES_TIME >= 2000:
+			LIVES -= 1
+			LIVES_TIME = now_lives
+		 
+		if  LIVES == 0:
+			GAMEOVER = True
+			
+		
+		#running = False
 	
+
+   
+	collidemedic = pygame.sprite.spritecollide(player, group_medicpack, True)
+	if collidemedic:
+
+		pygame.mixer.Sound.play(powerup)
+
+		LIVES += 1
+		medicpack = Medicpack()
+		all_sprites.add(medicpack)
+		group_medicpack.add(medicpack)
+
   	# bullet collission
 	hits = pygame.sprite.groupcollide(group_bullet,group_enemy, True, True)
 	# print('Bullet:', hits)
 	for h in hits:
+		pygame.mixer.Sound.play(bom)
 		enemy = Enemy()
 		all_sprites.add(enemy)
 		group_enemy.add(enemy)    
@@ -241,15 +334,30 @@ while running:
 
 	screen.blit(background,background_rect)
 
-	draw_text(screen, 'SCORE: {}'.format(SCORE), 30, WIDTH-200,10)
-	draw_text(screen, 'LIVES: {}'.format(3), 20, 100,10)
-
-
+	draw_text(screen, 'SCORE: {}'.format(SCORE), 30, WIDTH-300,10)
+	draw_text(screen, 'LIVES: {}'.format(LIVES), 20, 100,10)
+	# เมื่อ Game over อยากใส่อะไรเข้าไป
+	if GAMEOVER == True:
+		pygame.mixer.Sound.play(gameover)
+		now_gameover = pygame.time.get_ticks()
+		if GAMEOVER_FONT == True:
+			draw_text(screen, 'GAME OVER' , 100, 150, 300)
+			if now_gameover - GAMEOVER_TIME >= 1000:
+				GAMEOVER_FONT = False
+				GAMEOVER_TIME = now_gameover
+		else:
+			draw_text(screen, 'GAME OVER', 50, 250, 300)
+			if now_gameover - GAMEOVER_TIME >= 1000:
+				GAMEOVER_FONT = True
+				GAMEOVER_TIME = now_gameover
+		# เครื่องบินหยุด
+		for enemy in group_enemy:
+			enemy.kill()
+		for medicpack in group_medicpack:
+			medicpack.kill()
 
 	# นำตัวละครมาวาดใส่เกมส์
 	all_sprites.draw(screen)
-
-
 
 	# ให้ pygame แสดงผล
 	pygame.display.flip()
