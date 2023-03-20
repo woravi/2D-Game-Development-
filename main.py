@@ -12,7 +12,7 @@ pygame.mixer.init()
 ######### Sound Effect ###########
 
 # background music
-pygame.mixer.music.load(os.path.join(PATH, 'background-music.mp3'))
+pygame.mixer.music.load(os.path.join(PATH, 'bg2.mp3'))
 pygame.mixer.music.play(-1) # -1 คือ loop
 
 # collide sound
@@ -71,7 +71,7 @@ class Enemy(pygame.sprite.Sprite):
 		#ฟังชั่นหลัก จะรันทุกครั้งที่มีการเรียกใช้
 		pygame.sprite.Sprite.__init__(self)   
 		
-		img = os.path.join(PATH,'aircraft.png')
+		img = os.path.join(PATH,'ufo1.png')
 
 		# ถ้ามี โฟลเดอร์ image อีกชั้นต้องเขียนแบบนี้
 		# img = os.path.join(PATH,'image').join(PATH,'aircraft.png')
@@ -82,7 +82,7 @@ class Enemy(pygame.sprite.Sprite):
 
 		# สร้างสี่เหลี่ยม
 		self.rect = self.image.get_rect()
-
+		self.image = pygame.transform.scale(self.image, (50, 50))
 		# สุมตำแหน่ง แนวแกน x
 		rand_x = random.randint(self.rect.width, WIDTH - self.rect.width)
 		#rand_y = random.randint(self.rect.height, HEIGHT - self.rect.height)
@@ -103,50 +103,34 @@ class Enemy(pygame.sprite.Sprite):
 			self.rect.x = rand_x
 			self.speed_y = random.randint(1, 5)
 
-
 class Player(pygame.sprite.Sprite):
-
 	def __init__(self):
-		#ฟังชั่นหลัก จะรันทุกครั้ง
-		pygame.sprite.Sprite.__init__(self)   
-		
+		pygame.sprite.Sprite.__init__(self)  	
 		img = os.path.join(PATH,'bomber.png')
 		self.image = pygame.image.load(img).convert_alpha()
-
-		
-		# code ข้างล่างนี้ก็ทำงานได้
-		#self.ship = pygame.image.load("/Users/woravittosomrit/Desktop/python2D/firstgame/aircraft.png").convert_alpha()
-
-
-		# self.image = pygame.Surface((50,50))
-		# self.image.fill(GREEN)
-
-		# สร้างสี่เหลี่ยม
 		self.rect = self.image.get_rect()
 		self.rect.center = (WIDTH/2, HEIGHT - self.rect.height)
-
-		#speed x
-
 		self.speed_x = 0
-
-		# อัพเดท
+		self.speed_y = 0
 	def update(self):
 		#self.rect.y += 5
 		self.speed_x = 0
-
-		# เช็คว่ามีการกดปุ่มหรือไม่ ปุ่มอะไร
+		self.speed_y = 0
 		keystate = pygame.key.get_pressed()
 		if  GAMEOVER != True:
 			if keystate[pygame.K_LEFT] and self.rect.x > 0:
 				self.speed_x = -5
 			if keystate[pygame.K_RIGHT] and self.rect.x < WIDTH - self.rect.width:
 				self.speed_x = 5
-
+			if keystate[pygame.K_UP] and self.rect.y > 0:
+				self.speed_y = -5
+			if keystate[pygame.K_DOWN] and self.rect.y < HEIGHT - self.rect.height:
+				self.speed_y = 5
 		self.rect.x += self.speed_x
-
+		self.rect.y += self.speed_y
+		self.image = pygame.transform.scale(self.image, (40, 100))
 		if self.rect.bottom > HEIGHT:
 			self.rect.y = 0
-			
 
 	def shoot(self):
 		if  GAMEOVER != True:
